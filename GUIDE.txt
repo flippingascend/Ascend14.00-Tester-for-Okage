@@ -1,0 +1,185 @@
+ASCEND PS5 14.00 - SETUP GUIDE
+================================
+
+WHAT THIS IS:
+  Stage 1 (lightbar save) confirms code execution - orange light = working.
+  Stage 2 (network loader) lets you send ELF payloads from your PC to the PS5.
+
+  okage_save/VMC0.card is NOW the STAGE 2 NETWORK LOADER.
+  The old Stage 1 lightbar card is kept as okage_save/VMC0.card.lightbar-stage1.
+
+  This card is built for FIRMWARE=0.00 with PS2-network-loader ELF, using the
+  breakout layer of 0.00 (proven working on 14.00) plus the 6.50 kernel
+  syscall table. Firmware 14.00 has no published offsets of its own.
+
+CORRECTIONS vs the previous version of this guide:
+  - Loader port is 9045, NOT 9021. The old guide was wrong, so send_elf.py
+    could never connect. It has been rewritten.
+  - Use "py -3" or "python", NOT "python3". On Windows "python3" points at
+    the Microsoft Store stub and fails.
+  - The Stage 2 save is included here; you no longer download it from
+    GitHub releases.
+
+
+STEP 1 - DNS BLOCKER (optional, independent of the loader)
+----------------------------------------------------------
+This blocks PSN on the PS5. It has nothing to do with the ELF loader.
+
+  Right-click RUN_DNS.bat > Run as administrator.
+
+It self-elevates, finds Python, and prints your PC IP.
+Port 53 needs administrator rights. Leave the window open.
+
+
+STEP 2 - POINT THE PS5 AT YOUR PC
+----------------------------------
+PS5 > Settings > Network > Set Up Internet Connection > your WiFi > Custom:
+
+  IP Address Settings: Automatic
+  DNS Settings:        Manual
+  Primary DNS:         192.168.0.189   <-- your PC IP
+  Secondary DNS:       192.168.0.189   <-- same, so PS5 cannot bypass blocker
+  MTU:                 Automatic
+  Proxy Server:        Do Not Use
+
+Using the same IP for both forces all DNS through your PC.
+If the PS5 is on DHCP DNS the blocker sees nothing - it must be Manual.
+
+
+STEP 3 - BUILD THE EXPLOIT SAVE (Discord bot)
+----------------------------------------------
+Go to XDG NATION Discord > x-save-bot > your private thread.
+
+Run: /encrypt
+  Options:
+    include_sce_sys:     true
+    upload_individual:   true
+    secondlayer_choice:  false
+    playstation_id:      brazilkingo
+
+Bot asks for encrypted base files:
+  Upload your ORIGINAL: SCUS-97129 and SCUS-97129.bin
+  (NOT from this folder - your original encrypted save)
+
+Bot then asks for each decrypted file one by one.
+Upload from okage_save/ in this order:
+  1. trophy.dat
+  2. VMC0.card        <-- STAGE 2 NETWORK LOADER
+  3. VMC1.card
+  4. All 5 at once:
+     icon0.png  keystone  param.sfo  sce_icon0png1  sce_paramsfo1
+
+Download what the bot sends back. That is your signed exploit save.
+
+
+STEP 4 - COPY TO USB
+--------------------
+Extract the bot's download. Copy to USB exactly like this:
+
+  USB:\PS4\SAVEDATA\7abaae8c1bd3f2eb\CUSA02199\SCUS-97129
+  USB:\PS4\SAVEDATA\7abaae8c1bd3f2eb\CUSA02199\SCUS-97129.bin
+
+Plug USB into PS5.
+PS5 > Settings > Saved Data (PS4) > Copy from USB > Okage > Copy to Console.
+
+
+STEP 5 - RUN THE EXPLOIT AND READ THE RESULT
+---------------------------------------------
+Switch PS5 to the Brazil account.
+Launch Okage: Shadow King > Restore Game > File 1.
+
+The game will "crash" straight back to the home screen. THAT IS THE EXPLOIT
+FIRING. It is normal, not a failure.
+
+Within a few seconds the loader puts a dialog on the TV:
+
+    Waiting for PS2 ELF payload...          [progress bar]
+
+DIAGNOSTIC LADDER - which one do you see?
+
+  A. No dialog at all
+     Breakout layer failed. Stop and report this.
+
+  B. Dialog appears, but the PC never finds port 9045
+     listen() failed, so the 6.50 kernel syscall offset is wrong for 14.00.
+     This is the expected failure mode and it is fixable - report it.
+
+  C. Dialog appears AND port 9045 opens
+     Everything works. Go to Step 6.
+
+
+STEP 6 - SEND A PAYLOAD
+-----------------------
+Open Command Prompt (not WSL):
+
+  cd /d "C:\Users\bigal\Downloads\ASCEND_FINAL\ASCEND_FINAL"
+
+Find the loader - re-run this for up to a minute after the crash:
+
+  SEND_ELF.bat
+
+You want:
+
+  [+] LOADER FOUND: 192.168.0.117:9045
+
+Send the visible payload:
+
+  SEND_ELF.bat 192.168.0.117 PAYLOADS\ps-lightbar-PS5-0-00.elf
+
+Expect:
+
+  [*] Connecting to 192.168.0.117:9045 ...
+  [+] Connected! Sending 56500 bytes...
+  [*] 56500/56500 bytes (100%)
+  [+] Delivered.
+
+Your controller lightbar should turn ORANGE. That confirms the whole chain:
+PC -> network -> PS5 -> payload executed.
+
+The loader loops after each payload, so you can send another ELF straight away
+without reloading the save.
+
+Equivalent commands, if you prefer to call Python directly:
+
+  py -3 send_elf.py scan
+  py -3 send_elf.py 192.168.0.117 PAYLOADS\ps-lightbar-PS5-0-00.elf
+
+There is no reply from the console. "Delivered" means the bytes landed; the
+lightbar or notification is your proof that it ran.
+
+
+PAYLOADS
+--------
+  ps-lightbar-PS5-0-00.elf       56,500  turns the lightbar orange (best test)
+  ps-notification-PS5-0-00.elf    56,580  shows an on-screen popup
+  ps-blank-PS5-0-00.elf           1,284  does nothing, transfer test only
+
+Send ps-lightbar first. It is the same code as the Stage 1 save you already
+confirmed, so an orange lightbar after a send proves the transfer worked.
+
+
+GOING BACK TO STAGE 1
+---------------------
+If you want the plain lightbar save back, upload
+okage_save/VMC0.card.lightbar-stage1 as VMC0.card in Step 3 instead.
+That one needs no syscalls at all, so it works on any firmware.
+
+
+TROUBLESHOOTING
+---------------
+DNS blocker says "port already in use":
+  Something else holds port 53 (usually the Windows DNS Client service).
+  Win+R > services.msc > DNS Client > stop it, set to Manual, retry.
+
+PS5 still reaches PSN despite the blocker:
+  Secondary DNS is bypassing. Both primary AND secondary must be
+  192.168.0.189, and DNS Settings must be Manual.
+
+send_elf.bat reports connect failed:
+  - The Stage 2 save must be loaded, not the Stage 1 lightbar save.
+  - The loader only listens after the game has exited to the home screen.
+  - PC and console on the same LAN, no AP client isolation.
+  - Allow Python through Windows Firewall if prompted.
+
+Save shows Corrupted:
+  The bot did not resign correctly. Redo Step 3.

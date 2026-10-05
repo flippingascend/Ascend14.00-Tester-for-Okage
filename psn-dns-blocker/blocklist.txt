@@ -1,0 +1,35 @@
+# psn_block_dns blocklist
+# Format: one domain per line. A line blocks that domain AND every subdomain
+# of it (so "playstation.com" also kills "cdn.playstation.net").
+# Blank lines and everything after # or ! are ignored. IP addresses are ignored.
+# allowlist.txt overrides anything listed here.
+
+# --- PlayStation / PSN core ---------------------------------------------
+playstation.com
+playstation.net
+playstation.org
+playstation.tv
+psn.com
+psnprofiles.com
+
+# --- Sony online services the console logs into -------------------------
+sony.net
+scei.co.jp
+scei.com.tw
+sce.com
+sceglobal.com
+sonyglobal.com
+
+# --- Tied to PSN login / store / trophy / party backends ------------------
+np.playstation.com
+
+# --- Optional: uncomment to go harder ------------------------------------
+# Also blocks Sony's own web sites plus the streaming/DRM CDNs.
+# Only enable if you do not care about Sony web pages; it can break 4K
+# Blu-ray playback (Widevine licence server).
+# sony.com
+# sony.co.uk
+# sony.co.jp
+# sony-europe.com
+# akamaihd.net
+# widevine-alpha.appspot.com

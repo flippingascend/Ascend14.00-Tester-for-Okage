@@ -1,0 +1,5 @@
+# allowlist.txt - domains that are NEVER blocked, even if they appear in the
+# blocklist. Put anything here you still want to reach through this server.
+# Example: uncomment to keep Sony's support site reachable.
+# sony.com
+# playstation.com/help
